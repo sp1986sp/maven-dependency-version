@@ -1,0 +1,60 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.dt.pom</groupId>
+    <artifactId>parent-pom</artifactId>
+    <version>1.2.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>parent-pom</name>
+    <description>parent pom</description>
+
+    <properties>
+        <platform-version>1.44.0-SNAPSHOT</platform-version>
+        <hal-adapter-version>1.44.0-SNAPSHOT</hal-adapter-version>
+    </properties>
+    <profiles>
+        <profile>
+            <id>parent-pom</id>
+            <distributionManagement>
+                <snapshotRepository>
+                    <id>eshop-common</id>
+                    <name>eshop-common</name>
+                    <uniqueVersion>false</uniqueVersion>
+                    <url>https://nexus.yo-digital.com/repository/eshop-common/parent-pom/${version}</url>
+                </snapshotRepository>
+            </distributionManagement>
+        </profile>
+        <profile>
+            <id>eshop-dev-dependency</id>
+            <distributionManagement>
+                <snapshotRepository>
+                    <id>eshop-dev</id>
+                    <name>eshop-dev</name>
+                    <url>https://nexus.yo-digital.com/repository/${nexusPath}</url>
+                </snapshotRepository>
+            </distributionManagement>
+        </profile>
+        <profile>
+            <id>eshop-qa-dependency</id>
+            <distributionManagement>
+                <snapshotRepository>
+                    <id>eshop-qa</id>
+                    <name>eshop-qa</name>
+                    <url>https://nexus.yo-digital.com/repository/${nexusPath}</url>
+                </snapshotRepository>
+            </distributionManagement>
+        </profile>
+        <profile>
+            <id>eshop-release-dependency</id>
+            <distributionManagement>
+                <snapshotRepository>
+                    <id>eshop-release</id>
+                    <name>eshop-release</name>
+                    <url>https://nexus.yo-digital.com/repository/${nexusPath}</url>
+                </snapshotRepository>
+            </distributionManagement>
+        </profile>
+    </profiles>
+</project>

@@ -21,7 +21,7 @@ We decided to publish the dependencies jars to the nexus repository. The only ca
 
 Now, we met another hurdle of updating the dependencies jar version in each microservice( Remember there are 18 of them ) with every release. That was a huge effort and so to mitigate this we came up with a solution of creating a parent-pom file. This parent-pom file was the parent of all the microservices and dependencies pom. And all the dependencies versions info was moved to this parent-pom file. This reduced the update of the versions of dependencies to a single file update and that will resolve the dependencies in each service. This parent-pom file was then published to Nexus repo in a separate folder with the nomenclature: 1_44_0, 1_45_0 which corresponds to Sprint-44 and Sprint-45 respectively. The version of parent pom will always remain the same as it only contains the jar version and dependency management.
 
-Sample parent pom file: 
+Sample parent pom file: https://github.com/sp1986sp/maven-dependency-version/blob/main/pom.xml
 
 Note with this change following were the rules that were required to be followed:
 * All jars and parent pom must have a SNAPSHOT version as the snapshot version can be replaced locally on running: mvn clean install -U
@@ -77,10 +77,8 @@ We will define two repositories ( this is for local development as well ):
 #### Define the maven settings.xml
 We have a **common** profile having all common repositories ( parent-pom, maven central, plugins, etc ) defined and it is by default activated in settings.xml. There are three more profiles defined for fetching dependencies from the 3 different nexus repo: **eshop-dev**, **eshop-qa**, and **eshop-release**. Changes in settings.xml to support **common**, **eshop-dev**, **eshop-qa**, and **eshop-release** profile.
 
-Sample maven settings.xml file: 
+Sample maven settings.xml file: https://github.com/sp1986sp/maven-dependency-version/blob/main/settings.xml
   
-
-
 #### Local Repository Development on Local Environment
 Let us assume we need to develop some feature that has changes in dependencies as well as in the service repository. So, we need to do the changes in dependencies on local and need to verify if the changes are compatible with the service repository :
 1.  First, do the changes in the dependencies repository and build it in the local repo using this command:

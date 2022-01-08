@@ -3,12 +3,8 @@
 With the start of OneShop, we always tried to make things simpler for internal management. OneShop platform currently has 18+ microservices that are deployed over AWS EKS K8. As we are building this product for multiple countries, there are always many environments to deal with. These countries are generally on different versions of the microservices.
 To deal with that many numbers of microservices on different versions it was always a challenge to have shared and common dependencies jars like platform, hal-adapter build first with the precise version required for the deployment of microservices.
 
-## Problem Statement
-There were two problems:
-* Deployment of microservice
-* GIT Release of dependency jars
 
-### Now let's move to the challenge we faced during deployment
+#### Now let's move to the challenge we faced during deployment
 
 For each deployment of microservice the dependency jars needed to be built prior and for that there were dependencies Jenkins jobs that need to be triggered so that the required jars are present in the local maven repository of machines before the deployment of microservice. This causes the below issues:
 * The step of building this dependencies jar was an overhead before the deployment of any microservice.
@@ -16,7 +12,7 @@ For each deployment of microservice the dependency jars needed to be built prior
 * To get the older jar version we have to build the dependency repository again.
 * Dependencies must be fetched from Nexus for all the environments including local.
 
-### To overcome the above-mentioned problems, we built the below solution based on Maven
+#### To overcome the above-mentioned problems, we built the below solution based on Maven
 We decided to publish the dependencies jars to the nexus repository. The only catch was that we require to maintain the dependencies version with each release. For that we decided to update the version with every sprint and the nomenclature used for naming the branch was release-44, release-45 for sprint-44, and sprint-45 respectively. With every release, the jar version like 1.44.0-SNAPSHOT and 1.45.0-SNAPSHOT for release-44 and release-45 branch respectively is published to Nexus repository. In this way, we can have a dependencies jar of each release present in the Nexus repository and the one that is required for the microservice could be fetched accordingly.
 
 Now, we met another hurdle of updating the dependencies jar version in each microservice( Remember there are 18 of them ) with every release. That was a huge effort and so to mitigate this we came up with a solution of creating a parent-pom file. This parent-pom file was the parent of all the microservices and dependencies pom. And all the dependencies versions info was moved to this parent-pom file. This reduced the update of the versions of dependencies to a single file update and that will resolve the dependencies in each service. This parent-pom file was then published to Nexus repo in a separate folder with the nomenclature: 1_44_0, 1_45_0 which corresponds to Sprint-44 and Sprint-45 respectively. The version of parent pom will always remain the same as it only contains the jar version and dependency management.
@@ -24,7 +20,7 @@ Now, we met another hurdle of updating the dependencies jar version in each micr
 Sample parent pom file: https://github.com/sp1986sp/maven-dependency-version/blob/main/pom.xml
 
 Note with this change following were the rules that were required to be followed:
-* All jars and parent pom must have a SNAPSHOT version as the snapshot version can be replaced locally on running: mvn clean install -U
+* All jars and parent pom must have a SNAPSHOT version as the snapshot version can be replaced locally on running: **mvn clean install -U**
 * The version of parent pom will always remain the same as it only contains the jar version and dependency management.
 * The Nexus folder in which the parent-pom will be published will change according to the sprint version. And the nomenclature of the folder will be like 1_37_0, 1_38_0, 1_39_0
 * Dependencies will always be published from Jenkins's job only. Local publish will not be allowed.
@@ -45,26 +41,26 @@ In this solution, we created 4 nexus repositories:
 4) eshop-common
 
 In this solution we created 4 new Jenkins jobs:
-* One for publishing all dependencies jars to dev nexus repo: DEV Jenkins job
-* One for publishing jars to qa nexus repo: QA Jenkins job
-* One for publishing jars to release nexus repo: RELEASE Jenkins job
-* One for publishing parent-pom in parent-pom nexus repo ( the parent-pom will be used from a single location for all the environments ): PARENT-POM Jenkins job
+* One for publishing all dependencies jars to dev nexus repo: **DEV Jenkins job**
+* One for publishing jars to qa nexus repo: **QA Jenkins job**
+* One for publishing jars to release nexus repo: **RELEASE Jenkins job**
+* One for publishing parent-pom in parent-pom nexus repo ( the parent-pom will be used from a single location for all the environments ): **PARENT-POM Jenkins job**
 
 The same jar version will be used from different nexus repo based on the profile passed during building and starting of service, like for dev env to provide profile:
 
  `mvn clean install -P eshop-dev -Dversion=1_44_0`
 
-This command will download the dependencies from eshop-dev and the version of jars will be 1.44.0-SNAPSHOT as defined in the parent pom. For example, platform: 1.44.0-SNAPSHOT will be downloaded from the eshop-dev nexus repo if the profile passed is eshop-dev and the same jar version will be downloaded from the eshop-qa nexus repository if the profile passed is eshop-qa.
+This command will download the dependencies from **eshop-dev** and the version of jars will be **1.44.0-SNAPSHOT** as defined in the parent pom. For example, platform: 1.44.0-SNAPSHOT will be downloaded from the **eshop-dev** nexus repo if the profile passed is **eshop-dev** and the same jar version will be downloaded from the **eshop-qa** nexus repository if the profile passed is **eshop-qa**.
 
 In this way the dependencies jar follow these steps to reach production:
-1) Development changes are done and published to the eshop-dev nexus repository
-2) Once the development is complete the jar is published to the eshop-qa nexus repository.
-3) If any bug is raised the changes on dependencies are again done and published on eshop-dev and once verified then is again pushed to eshop-qa for further testing.
-4) Finally, at the end of the sprint, the final verified jar is now published to the eshop-release nexus repository. This repository is used by production and Natco connected environments.
+1) Development changes are done and published to the **eshop-dev** nexus repository
+2) Once the development is complete the jar is published to the **eshop-qa** nexus repository.
+3) If any bug is raised the changes on dependencies are again done and published on **eshop-dev** and once verified then is again pushed to **eshop-qa** for further testing.
+4) Finally, at the end of the sprint, the final verified jar is now published to the **eshop-release** nexus repository. This repository is used by production and Natco connected environments.
 
 The jar version is defined only in the parent pom file. In all the service repositories the version defined in parent-pom will be inherited for all dependencies jar versions.
 
-####Steps to setup maven local repository and download the dependencies jar
+#### Steps to setup maven local repository and download the dependencies jar
 We will define two repositories ( this is for local development as well ):
 1) **remote**: It should always fetch all dependencies from the Nexus repo. Dependencies like platform, hal-adapter, etc. should not be locally built in this repo. This repository must always download the dependencies ( Because on the local building of a dependency a maven-metadata-local.xml is generated in a local path where the jar is generated, this file does not allow the download from Nexus repo.)
 
@@ -75,7 +71,7 @@ We will define two repositories ( this is for local development as well ):
     * **The path on the local system will be: .m2/local**
 
 #### Define the maven settings.xml
-We have a **common** profile having all common repositories ( parent-pom, maven central, plugins, etc ) defined and it is by default activated in settings.xml. There are three more profiles defined for fetching dependencies from the 3 different nexus repo: **eshop-dev**, **eshop-qa**, and **eshop-release**. Changes in settings.xml to support **common**, **eshop-dev**, **eshop-qa**, and **eshop-release** profile.
+We have a **common** profile having all common repositories ( parent-pom, maven central, plugins, etc ) defined and it is by **default** activated in settings.xml. There are three more profiles defined for fetching dependencies from the 3 different nexus repo: **eshop-dev**, **eshop-qa**, and **eshop-release**. Changes in settings.xml to support **common**, **eshop-dev**, **eshop-qa**, and **eshop-release** profile.
 
 Sample maven settings.xml file: https://github.com/sp1986sp/maven-dependency-version/blob/main/settings.xml
   
@@ -141,7 +137,7 @@ There are three new parameters introduced in Jenkins job for this:
     
     * **No:** Download the dependencies from Nexus Repo and use .m2/eshop-dev/remote folder
 
-####Benefits of using this approach
+#### Benefits of using this approach
 
 * In this solution, there is no commit in service repo pom to change dependency jar version or parent-pom version.
 * All jar versions are maintained in a single place i.e. parent-pom
@@ -169,7 +165,7 @@ There are three new parameters introduced in Jenkins job for this:
     `mvn -Dmaven.repo.local=$HOME/.m2/remote -P eshop-dev -Dversion=1_44_0 clean install`
 
 
-####Intellij Changes
+#### Intellij Changes
 In Intellij to reload jar in External Dependencies
 
 **Maven Local Repository**

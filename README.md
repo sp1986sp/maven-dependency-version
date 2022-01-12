@@ -4,22 +4,40 @@ With the start of OneShop, we always tried to make things simpler for internal m
 To deal with that many numbers of microservices on different versions it was always a challenge to have shared and common dependencies jars like platform, hal-adapter build first with the precise version required for the deployment of microservices.
 
 
-#### Now let's move to the challenge we faced during deployment
+#### Problem Statement
+There were mainly two problems:
+* Deployment of microservice
+* Release of dependency
 
+##### Challenges we faced during deployment of microservice
 For each deployment of microservice the dependency jars needed to be built prior and for that there were dependencies Jenkins jobs that need to be triggered so that the required jars are present in the local maven repository of machines before the deployment of microservice. This causes the below issues:
-* The step of building this dependencies jar was an overhead before the deployment of any microservice.
-* The dependencies are not released over nexus through the Jenkins pipeline
-* To get the older jar version we have to build the dependency repository again.
-* Dependencies must be fetched from Nexus for all the environments including local.
+Multiple sprint releases of microservices were referring to the same version of dependency jars.
+The step of building this dependencies jar was an overhead before the deployment of any microservice.
+To get the older jar version we have to build the dependency repository again.
+The deployment was prone to the mismatch of microservice version with dependency jar version
+
+##### Challenges we faced during the release of dependencies
+The dependencies were always were created locally hence every time to fetch the jar the dependencies need to be built again. That caused the below issues:
+Changes in dependencies could impact the upper environment as the release process of dependencies was not in place.
+The dependencies are not released over nexus through the Jenkins pipeline.
+Sharing the dependencies with other teams was a manual process.
+
+<img width="853" alt="Screenshot 2022-01-10 at 5 45 04 PM" src="https://user-images.githubusercontent.com/51107684/149127474-dedddf3d-2cf3-4dce-8a58-f529e1c5f374.png">
+
+ `In above diagram each micrservice are on different version ( release-46, release-45, etc.) and same dependency jar ( version:1.0.1 ) has to be built again with different branch ( release-46, release-45, etc.) to deploy each microservice as the dependencies gets replaced on local system due to same version number.`
 
 #### To overcome the above-mentioned problems, we built the below solution based on Maven
 We decided to publish the dependencies jars to the nexus repository. The only catch was that we require to maintain the dependencies version with each release. For that we decided to update the version with every sprint and the nomenclature used for naming the branch was release-44, release-45 for sprint-44, and sprint-45 respectively. With every release, the jar version like 1.44.0-SNAPSHOT and 1.45.0-SNAPSHOT for release-44 and release-45 branch respectively is published to Nexus repository. In this way, we can have a dependencies jar of each release present in the Nexus repository and the one that is required for the microservice could be fetched accordingly.
 
 Now, we met another hurdle of updating the dependencies jar version in each microservice( Remember there are 18 of them ) with every release. That was a huge effort and so to mitigate this we came up with a solution of creating a parent-pom file. This parent-pom file was the parent of all the microservices and dependencies pom. And all the dependencies versions info was moved to this parent-pom file. This reduced the update of the versions of dependencies to a single file update and that will resolve the dependencies in each service. This parent-pom file was then published to Nexus repo in a separate folder with the nomenclature: 1_44_0, 1_45_0 which corresponds to Sprint-44 and Sprint-45 respectively. The version of parent pom will always remain the same as it only contains the jar version and dependency management.
 
+<img width="1033" alt="Screenshot 2022-01-10 at 12 59 04 AM" src="https://user-images.githubusercontent.com/51107684/149129091-bd4a89a0-6725-4dd5-a853-3f301a0a422a.png">
+
+ `The above diagram depicts that the dependency jars are published to Nexus repository with different version as per release(1.46.0-SNAPSHOT, 1.45.0-SNAPSHOT, etc.). Each microservice based on the dependency version that is required could be fetched from Nexus without rebuilding the jars.`
+
 Sample parent pom file: https://github.com/sp1986sp/maven-dependency-version/blob/main/pom.xml
 
-Note with this change following were the rules that were required to be followed:
+#### Rules that were required to be followed
 * All jars and parent pom must have a SNAPSHOT version as the snapshot version can be replaced locally on running: **mvn clean install -U**
 * The version of parent pom will always remain the same as it only contains the jar version and dependency management.
 * The Nexus folder in which the parent-pom will be published will change according to the sprint version. And the nomenclature of the folder will be like 1_37_0, 1_38_0, 1_39_0
@@ -58,7 +76,9 @@ In this way the dependencies jar follow these steps to reach production:
 3) If any bug is raised the changes on dependencies are again done and published on **eshop-dev** and once verified then is again pushed to **eshop-qa** for further testing.
 4) Finally, at the end of the sprint, the final verified jar is now published to the **eshop-release** nexus repository. This repository is used by production and Natco connected environments.
 
-The jar version is defined only in the parent pom file. In all the service repositories the version defined in parent-pom will be inherited for all dependencies jar versions.
+<img width="855" alt="Screenshot 2022-01-10 at 1 35 24 AM" src="https://user-images.githubusercontent.com/51107684/149133150-fecefc18-b8ab-4d61-ab53-0bc6827b3bf0.png">
+
+**NOTE: The jar version is defined only in the parent pom file. In all the service repositories the version defined in parent-pom will be inherited for all dependencies jar versions.**
 
 #### Steps to setup maven local repository and download the dependencies jar
 We will define two repositories ( this is for local development as well ):
@@ -75,6 +95,7 @@ We have a **common** profile having all common repositories ( parent-pom, maven 
 
 Sample maven settings.xml file: https://github.com/sp1986sp/maven-dependency-version/blob/main/settings.xml
   
+
 #### Local Repository Development on Local Environment
 Let us assume we need to develop some feature that has changes in dependencies as well as in the service repository. So, we need to do the changes in dependencies on local and need to verify if the changes are compatible with the service repository :
 1.  First, do the changes in the dependencies repository and build it in the local repo using this command:
@@ -170,31 +191,30 @@ In Intellij to reload jar in External Dependencies
 
 **Maven Local Repository**
 1) First select local repo in Intellij
-
-    Point maven local repository
+<img width="1436" alt="Screenshot 2020-07-09 at 3 18 56 PM" src="https://user-images.githubusercontent.com/51107684/149196546-e8bd9ae5-3c07-4829-aaac-94a0382304d9.png">
 
 2) Set parent-pom folder as an argument
-
-    -Dversion = parant-pom version
+<img width="1439" alt="Screenshot 2021-02-09 at 5 49 38 PM" src="https://user-images.githubusercontent.com/51107684/149197084-8dfbe847-ceb5-4938-8ba7-03ffc0625411.png">
 
 3) Deselect all profiles just common must be selected
-
-    Common must only be selected
+<img width="1438" alt="Screenshot 2020-07-09 at 3 21 38 PM" src="https://user-images.githubusercontent.com/51107684/149197273-9c044ad3-9227-42b3-87ba-3e45e2bd3dd0.png">
 
 4) Click Reimport option
-    
-    Click Reimport to update external library jars
+<img width="1440" alt="Screenshot 2020-07-09 at 3 11 49 PM" src="https://user-images.githubusercontent.com/51107684/149197399-0d648685-b83e-4489-83f6-511d4e68c0a9.png">    
 
 **Maven Remote Repository**
 
 1) First, change the path of the maven repo to remote
+<img width="1438" alt="Screenshot 2020-07-09 at 2 51 43 PM" src="https://user-images.githubusercontent.com/51107684/149197500-950f8742-24e5-4322-81a3-c4bad7a73a79.png">
 
 2) Set parent-pom folder as an argument
+<img width="1439" alt="Screenshot 2021-02-09 at 5 49 38 PM" src="https://user-images.githubusercontent.com/51107684/149197084-8dfbe847-ceb5-4938-8ba7-03ffc0625411.png">
 
 3) Select settings.xml profile like dev, the common profile is selected by default as it is the default active profile
+<img width="1438" alt="Screenshot 2020-07-09 at 3 23 59 PM" src="https://user-images.githubusercontent.com/51107684/149197915-c504faa3-d27d-402c-af08-9948873438d0.png">
 
 4) Click Reimport option
-
+<img width="1440" alt="Screenshot 2020-07-09 at 3 11 49 PM" src="https://user-images.githubusercontent.com/51107684/149197399-0d648685-b83e-4489-83f6-511d4e68c0a9.png"> 
 
 The jar re-importing can be done in parallel to the building of the service repository.
 
